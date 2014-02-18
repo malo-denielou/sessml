@@ -1,0 +1,14 @@
+(********************************************************************)
+(* SessML - Examples                                                *)
+(********************************************************************)
+(* $Time-stamp: <28-07-2010 14:43 by Pierre-Malo Denielou>$ *)
+
+session PubSub =
+  roles publisher[*]  : int, subscriber[*]  : int
+
+  global rec main = 
+    forall x:publisher.(
+      forall y:subscriber.(
+        x -> y with Msg(string)
+      )
+    )

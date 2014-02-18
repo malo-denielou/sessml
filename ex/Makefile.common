@@ -1,0 +1,144 @@
+#############################
+# SessML Compiler           #
+# Makefile for the examples #
+#############################
+
+
+###################################
+# Paths, libraries and source files
+###################################
+PREFIX = ../..
+LIB = $(PREFIX)/lib/
+SRC = $(PREFIX)/src/
+
+# OCAML
+FLAGS = -I $(LIB)
+BCFLAGS = -thread unix.cma threads.cma -I $(LIB)
+NCFLAGS = $(BCFLAGS:.cma=.cmxa)
+
+SFILES = $(S).ml
+# $(S)_protocol.mli $(S)_protocol.ml $(S).mli 
+
+#################
+# Generic targets
+#################
+
+
+all: sessml $(S).ml dots lib
+
+exe: all nc-exe
+
+# ocaml-ssl symb libs.dll libs-s.dll symb-exe $(roles) $(roles:.exe=-o.exe) clean-cache # clean-lib bc-exe 
+all-ocaml: s2ml ocaml-ssl symb symb-exe $(roles:.exe=-o.exe) clean-cache # clean-lib bc-exe 
+symbolic: s2ml symb symb-exe clean-cache # clean-lib 
+concrete: s2ml libs.dll $(roles:.role=.exe) clean-cache # bc-exe clean-lib 
+openssl: s2ml ocaml-ssl $(roles:.role=-o.exe)
+
+sessml::
+	$(MAKE) -C $(SRC)
+
+lib:
+	$(MAKE) -C $(LIB)
+
+$(SFILES): sessml  $(S).session
+	$(SRC)sessml $(S).session
+
+%.cmi : %.mli
+	ocamlc -c $(FLAGS) $<
+
+%.cmo: %.ml
+	ocamlc -c $(FLAGS) $<
+
+%.cmx: %.ml
+	ocamlopt -c $(FLAGS) $<
+
+##################
+# Specific targets
+##################
+
+bc-exe: $(roles:.role=-bc.exe)
+
+nc-exe: $(roles:.role=.exe)
+
+dots:: $(S).ml
+	dot -Tps $(S).dot -o $(S).ps
+	dot -Tpdf $(S).dot -o $(S).pdf
+	# dot -Tps $(S)-full.dot -o $(S)-full.ps
+	# dot -Tpdf $(S)-full.dot -o $(S)-full.pdf
+	# dot -Tpdf $(S)-ext.dot -o $(S)-ext.pdf
+	# dot -Tps $(S)-ext.dot -o $(S)-ext.ps
+
+$(S).tc7: $(sevenexe) $(SYMLIBS) $(SFILES:.mli=.ml7) 
+	$(seven) $(SYMLIBS) $(SFILES:.mli=.ml7) -scripts $(S) > $(S).tc7; egrep "ERROR" $(S).tc7; echo ""
+
+#$(S)_protocol.mli: $(seven) $(SYMLIBS) $(S)_protocol.ml7 
+#	$(seven) -debug -genfsi -nokindcheck -scripts $(S)_protocol $(SYMLIBS) $(S)_protocol.ml7 
+
+#$(S).mli: $(seven) $(SYMLIBS) $(S).ml7 
+#	$(seven) -debug -genfsi -nokindcheck -scripts $(S) $(SYMLIBS) $(S).ml7 
+
+#############
+# Executables
+#############
+
+# nc: $(S).ml $(S)_protocol.cmi $(S)_protocol.cmx $(S).cmi $(S).cmx $(roles:.exe=.cmx)
+# bc: $(S).ml $(S)_protocol.cmi $(S)_protocol.cmo $(S).cmi $(S).cmo $(roles:.exe=.cmo)
+#
+#client-bc.exe: bc
+#	ocamlc -custom  $(FLAGS) $(BCFLAGS) $(BCFILES) client.cmo \
+#	-o client-bc.exe \
+#	$(S).cmo client.cmo
+
+# $(S)-s.exe: $(S)-s.dll $(S)-symb.ml
+# 	$(COMPSYMB) -r libs-s.dll -r $(S)-s.dll $(S)-symb.ml -o $(S)-s.exe
+
+%.exe: $(S).ml %.ml 
+	ocamlopt -c -thread $(FLAGS) $(S).ml
+	ocamlopt $(NCFLAGS) runtime.cmx $(S).cmx $*.ml -o $*.exe
+
+#	$(COMPCONC) -r libs.dll -r $(S).dll $*.ml -o $*.exe	
+
+# server-bc.exe: bc
+# 	ocamlc -custom  $(FLAGS) $(BCFLAGS) $(BCFILES) \
+# 	  -o server-bc.exe \
+# 	  $(S).cmo server.cmo
+
+$(S)-symb-bc.exe:  $(SFILES) $(S).ml
+	ocamlc -c $(BCSYMBFLAGS) $(S)_protocol.mli
+	ocamlc -c $(BCSYMBFLAGS) $(S)_protocol.ml
+	ocamlc -c $(BCSYMBFLAGS) $(S).mli
+	ocamlc -c $(BCSYMBFLAGS) $(S).ml
+	ocamlc -c $(BCSYMBFLAGS) $(S)-symb.ml
+	ocamlc -custom $(BCSYMBFLAGS) $(BCSYMBFILES) \
+	  -o $(S)-symb-bc.exe \
+	  $(S)_protocol.cmo $(S).cmo $(S)-symb.cmo
+
+$(S)-symb.exe: $(SFILES) $(S).ml
+	ocamlopt -c $(NCSYMBFLAGS) $(S)_protocol.mli
+	ocamlopt -c $(NCSYMBFLAGS) $(S)_protocol.ml
+	ocamlopt -c $(NCSYMBFLAGS) $(S).mli
+	ocamlopt -c $(NCSYMBFLAGS) $(S).ml
+	ocamlopt -c $(NCSYMBFLAGS) $(S)-symb.ml
+	ocamlopt $(NCSYMBFLAGS) $(NCSYMBFILES) \
+	  -o $(S)-symb.exe \
+	  $(S)_protocol.cmx $(S).cmx $(S)-symb.cmx
+
+%-o.exe: ocaml-ssl $(SFILES) %.ml
+	ocamlopt -c $(NCFLAGS) $(FLAGS) $(S)_protocol.mli
+	ocamlopt -c $(NCFLAGS) $(FLAGS) $(S)_protocol.ml
+	ocamlopt -c $(NCFLAGS) $(FLAGS) $(S).mli
+	ocamlopt -c $(NCFLAGS) $(FLAGS) $(S).ml
+	ocamlopt -c $(NCFLAGS) $(FLAGS) $*.ml
+	ocamlopt $(FLAGS) $(NCFLAGS) $(NCFILES) $(S)_protocol.cmx $(S).cmx $*.cmx -o $*-o.exe
+
+%-bc.exe: ocaml-ssl $(SFILES) $(S).ml %.ml
+	ocamlc -custom -c $(BCFLAGS) $(FLAGS) $(S)_protocol.mli
+	ocamlc -custom -c $(BCFLAGS) $(FLAGS) $(S)_protocol.ml
+	ocamlc -custom -c $(BCFLAGS) $(FLAGS) $(S).mli
+	ocamlc -custom -c $(BCFLAGS) $(FLAGS) $(S).ml
+	ocamlc -custom -c $(BCFLAGS) $(FLAGS) $*.ml
+	ocamlc -custom $(FLAGS) $(BCFLAGS) $(BCFILES) $(S)_protocol.cmo $(S).cmo $*.cmo -o -$*-bc.exe 
+
+##########
+# Cleaning
+##########

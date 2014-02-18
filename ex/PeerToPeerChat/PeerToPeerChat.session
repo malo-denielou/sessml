@@ -1,0 +1,14 @@
+(********************************************************************)
+(* SessML - Examples                                                *)
+(********************************************************************)
+(* $Time-stamp: <28-07-2010 14:43 by Pierre-Malo Denielou>$ *)
+
+session PeerToPeerChat =
+  roles client[*]  : int
+
+  global rec main = 
+    forall x:client.(
+      forall y:client.(
+        x -> y with Msg(string)
+      )
+    )

@@ -1,0 +1,18 @@
+(********************************************************************)
+(* SessML - Examples                                                *)
+(********************************************************************)
+(* $Time-stamp: <28-07-2010 14:43 by Pierre-Malo Denielou>$ *)
+
+session MapReduce =
+  roles client[1]  : int,
+        control[1] : int,
+        cluster[*] : string
+
+  global rec main = 
+    client -> control with Task(int);
+    forall x:cluster.(
+      control -> x with Map(int) ;
+      x -> control with Reduce(int)
+    );
+    control -> client with Result(string)
+                         | Fail(unit)

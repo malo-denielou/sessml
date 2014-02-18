@@ -1,0 +1,20 @@
+(********************************************************************)
+(* SessML - Examples                                                *)
+(********************************************************************)
+(* $Time-stamp: <05-08-2010 01:00 by Malo Deniélou>$ *)
+
+session Auction =
+  roles buyer[*]  : int,
+        broker[1] : int,
+        seller[*] : string
+
+  global rec main = 
+   forall x:buyer.(
+      forall y:seller.(
+        broker -> x with 
+          Match{x,y}.(x->y with Notify(int))
+        | Quit{y}.(x->y with Stop)
+      )
+    )
+
+    

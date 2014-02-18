@@ -1,0 +1,16 @@
+(********************************************************************)
+(* SessML - Examples                                                *)
+(********************************************************************)
+(* $Time-stamp: <03-08-2010 22:53 by Denielou Malo>$ *)
+
+session ChatServer =
+  roles client[*]  : int,
+        server[1] : int
+
+  global rec main = 
+    forall x:client.(
+      x -> server with Msg(string);
+      forall y:client.(
+        server -> y with BCast{x}(string)
+      )
+    )
